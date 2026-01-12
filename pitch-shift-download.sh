@@ -2,13 +2,12 @@
 
 # Pitch Shift Download Script
 # Downloads audio from YouTube and applies pitch shifting using ffmpeg
-# Usage: ./pitch-shift-download.sh <youtube_url> [pitch_factor] [output_name]
+# Usage: ./pitch-shift-download.sh <youtube_url> [pitch_factor]
 
 set -e  # Exit on any error
 
 # Default values
 PITCH_FACTOR=${2:-0.943874}  # Default to half-step down
-OUTPUT_NAME=${3:-"pitch-shifted"}
 
 # Colors for output
 RED='\033[0;31m'
@@ -40,12 +39,13 @@ check_command() {
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <youtube_url> [pitch_factor] [output_name]"
+    echo "Usage: $0 <youtube_url> [pitch_factor]"
     echo ""
     echo "Arguments:"
     echo "  youtube_url   YouTube URL to download audio from (required)"
     echo "  pitch_factor  Pitch adjustment factor (optional, default: 0.943874 = half-step down)"
-    echo "  output_name   Base name for output file (optional, default: 'pitch-shifted')"
+    echo ""
+    echo "Note: Output files will be saved in the 'shifted/' directory using the video title"
     echo ""
     echo "Common pitch factors:"
     echo "  1.059463      +1 semitone (half-step up)"
@@ -57,7 +57,7 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0 'https://youtu.be/wMFpXL4A11I'"
-    echo "  $0 'https://youtu.be/wMFpXL4A11I' 1.059463 'song-up-halfstep'"
+    echo "  $0 'https://youtu.be/wMFpXL4A11I' 1.059463"
     exit 1
 }
 
@@ -104,6 +104,13 @@ fi
 
 print_status "Downloaded: $(basename "$INPUT_FILE")"
 
+# Create output directory
+mkdir -p "shifted"
+
+# Extract the title from the downloaded filename (remove extension)
+VIDEO_TITLE=$(basename "$INPUT_FILE" .mp3)
+print_status "Video title: $VIDEO_TITLE"
+
 # Get the actual sample rate of the input file
 print_status "Detecting input sample rate..."
 INPUT_SR=$(ffprobe -v error -select_streams a:0 \
@@ -121,7 +128,7 @@ TEMPO=$(awk "BEGIN{printf \"%.6f\", 1/${PITCH_FACTOR}}")
 print_status "Tempo compensation factor: $TEMPO"
 
 # Apply pitch shifting with ffmpeg using proper sample rate and tempo compensation
-OUTPUT_FILE="${OUTPUT_NAME}.mp3"
+OUTPUT_FILE="shifted/${VIDEO_TITLE}_pitch-shifted.mp3"
 print_status "Applying pitch shift (factor: $PITCH_FACTOR)..."
 print_status "Output file: $OUTPUT_FILE"
 
